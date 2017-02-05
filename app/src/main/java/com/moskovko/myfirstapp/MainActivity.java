@@ -34,10 +34,13 @@ public class MainActivity extends AppCompatActivity {
     */
 
     public void startAnimation(View view) {
+        /*
         ValueAnimator animation = ValueAnimator.ofFloat(mBatteryCharge.getCurrentChargeLevel(),
                         mRandomChargeGenerator.nextFloat());
         animation.setDuration(1500);
         animation.addUpdateListener(mBatteryCharge);
         animation.start();
+        */
+        mBatteryCharge.setCurrentChargeLevel(mRandomChargeGenerator.nextFloat());
     }
 }

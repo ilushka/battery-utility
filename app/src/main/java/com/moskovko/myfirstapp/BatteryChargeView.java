@@ -16,6 +16,7 @@ import android.animation.ValueAnimator;
 
 public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpdateListener {
     private static final int MAX_BAR_HEIGHT = 660;
+    private static final int FULL_BAR_ANIMATION_DURATION = 2500;     // milliseconds
 
     private String mTest;
     private Paint mBarStrokePaint;
@@ -50,6 +51,15 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
 
     public float getCurrentChargeLevel() {
         return mCurrentChargeLevel;
+    }
+
+    public void setCurrentChargeLevel(float level) {
+        ValueAnimator animation = ValueAnimator.ofFloat(mCurrentChargeLevel, level);
+        // scale animation time to how much movement the bar needs to make  
+        animation.setDuration((int)(FULL_BAR_ANIMATION_DURATION *
+                Math.abs((mCurrentChargeLevel - level))));
+        animation.addUpdateListener(this);
+        animation.start();
     }
 
     @Override
