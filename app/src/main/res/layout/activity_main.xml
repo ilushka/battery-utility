@@ -21,6 +21,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         custom:testAttr="MONKEY"/>
+    <com.moskovko.myfirstapp.BatteryHealthView
+        android:id="@+id/battery_health"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        custom:testAttr="MONKEY"/>
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

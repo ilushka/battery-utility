@@ -7,7 +7,6 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.util.Log;
 import android.animation.ValueAnimator;
 
 /**
@@ -18,7 +17,6 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
     private static final int MAX_BAR_HEIGHT = 660;
     private static final int FULL_BAR_ANIMATION_DURATION = 2500;     // milliseconds
 
-    private String mTest;
     private Paint mBarStrokePaint;
     private Paint mBarFillPaint;
     private int mCurrentBarHeight;
@@ -27,6 +25,7 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
     public BatteryChargeView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
+        /*
         TypedArray a = context.getTheme().obtainStyledAttributes(
                 attrs,
                 R.styleable.BatteryChargeView,
@@ -36,6 +35,7 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
         } finally {
             a.recycle();
         }
+        */
 
         mBarStrokePaint = new Paint();
         mBarStrokePaint.setColor(Color.parseColor("#000000"));
@@ -55,7 +55,7 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
 
     public void setCurrentChargeLevel(float level) {
         ValueAnimator animation = ValueAnimator.ofFloat(mCurrentChargeLevel, level);
-        // scale animation time to how much movement the bar needs to make  
+        // scale animation time to how much movement the bar needs to make
         animation.setDuration((int)(FULL_BAR_ANIMATION_DURATION *
                 Math.abs((mCurrentChargeLevel - level))));
         animation.addUpdateListener(this);
@@ -73,34 +73,16 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
-        int width = getMeasuredWidth();
-        int height = getMeasuredHeight();
-        int size = 0;
-        if (width < height) {
-            size = width;
-        } else {
-            size = height;
-        }
-/*
-        int minimumWidth = getPaddingLeft() + getPaddingRight() + getSuggestedMinimumWidth();
-        int width = resolveSizeAndState(minimumWidth, widthMeasureSpec, 0);
-        int minHeight = MeasureSpec.getSize(width)  + getPaddingBottom() + getPaddingTop();
-        int height = resolveSizeAndState(MeasureSpec.getSize(width), heightMeasureSpec, 0);
-*/
-        setMeasuredDimension(size, size);
+        // TODO: create constants
+        setMeasuredDimension(300, 700);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
         canvas.drawColor(Color.parseColor("#FF0000"));
-        /*
-        int centerX = getMeasuredWidth() / 2;
-        int centerY = getMeasuredHeight() / 2;
-        canvas.drawCircle(centerX, centerY, 100, mPaint);
-        */
 
-        canvas.drawRect(100, 100, 400, 800, mBarStrokePaint);
-        // canvas.drawRect(120, 120, 380, 780, mBarFillPaint);
-        canvas.drawRect(120, 780 - mCurrentBarHeight, 380, 780, mBarFillPaint);
+        // TODO: create constants
+        canvas.drawRect(0, 0, 300, 700, mBarStrokePaint);
+        canvas.drawRect(20, 680 - mCurrentBarHeight, 280, 680, mBarFillPaint);
     }
 }
