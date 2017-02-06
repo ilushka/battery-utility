@@ -13,6 +13,7 @@ import java.util.Random;
 public class MainActivity extends AppCompatActivity {
     public final static String EXTRA_MESSAGE = "com.moskovko.myfirstapp.MESSAGE";
     private BatteryChargeView mBatteryCharge;
+    private BatteryHealthView mBatterHealth;
     private Random mRandomChargeGenerator;
 
     @Override
@@ -20,6 +21,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mBatteryCharge = (BatteryChargeView)findViewById(R.id.battery_charge);
+        mBatterHealth = (BatteryHealthView)findViewById(R.id.battery_health);
         mRandomChargeGenerator = new Random();
     }
 
@@ -42,5 +44,6 @@ public class MainActivity extends AppCompatActivity {
         animation.start();
         */
         mBatteryCharge.setCurrentChargeLevel(mRandomChargeGenerator.nextFloat());
+        mBatterHealth.setCurrentHealthLevel(mRandomChargeGenerator.nextFloat());
     }
 }
