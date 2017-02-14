@@ -13,8 +13,10 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import java.io.UnsupportedEncodingException;
 import java.util.Random;
 import android.bluetooth.BluetoothAdapter;
+import android.widget.Button;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
@@ -37,8 +39,7 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(MainActivity.this,
-                                "Unable to initialize UART service",
+                        Toast.makeText(MainActivity.this, "Unable to initialize UART service",
                                 Toast.LENGTH_LONG).show();
                     }
                 });
@@ -61,9 +62,11 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(MainActivity.this,
-                                "Connected to " + mBtDevice.getName(),
+                        Toast.makeText(MainActivity.this, "Connected to " + mBtDevice.getName(),
                                 Toast.LENGTH_LONG).show();
+                        // set button name to disconnect
+                        Button b = (Button)findViewById(R.id.connect_disconnect_button);
+                        b.setText(R.string.button_disconnect);
                     }
                 });
             } else if (action.equals(UartService.ACTION_GATT_DISCONNECTED)) {
@@ -73,6 +76,10 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(MainActivity.this,
                                 "Disconnected from " + mBtDevice.getName(),
                                 Toast.LENGTH_LONG).show();
+                        mBtDevice = null;
+                        // set button name to connect
+                        Button b = (Button)findViewById(R.id.connect_disconnect_button);
+                        b.setText(R.string.button_connect);
                     }
                 });
             } else if (action.equals(UartService.ACTION_GATT_SERVICES_DISCOVERED)) {
@@ -81,8 +88,7 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(MainActivity.this,
-                                "Data available",
+                        Toast.makeText(MainActivity.this, "Data available",
                                 Toast.LENGTH_LONG).show();
                     }
                 });
@@ -90,8 +96,7 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        Toast.makeText(MainActivity.this,
-                                "UART is not supported",
+                        Toast.makeText(MainActivity.this, "UART is not supported",
                                 Toast.LENGTH_LONG).show();
                     }
                 });
@@ -109,8 +114,8 @@ public class MainActivity extends AppCompatActivity {
         filter.addAction(UartService.DEVICE_DOES_NOT_SUPPORT_UART);
 
         // bind to service
-        Intent i = new Intent(this, UartService.class);
-        bindService(i, mUartServiceConn, Context.BIND_AUTO_CREATE);
+        bindService(new Intent(this, UartService.class), mUartServiceConn,
+                Context.BIND_AUTO_CREATE);
         LocalBroadcastManager.getInstance(this).registerReceiver(mUartBroadcastReceiver, filter);
     }
 
@@ -125,6 +130,7 @@ public class MainActivity extends AppCompatActivity {
         mBatterHealth = (BatteryHealthView)findViewById(R.id.battery_health);
         mRandomChargeGenerator = new Random();
         mBtAdapter = BluetoothAdapter.getDefaultAdapter();
+        mBtDevice = null;
         if (mBtAdapter == null) {
             Toast.makeText(this, "Cannot get default bluetooth adapter", Toast.LENGTH_LONG).show();
         }
@@ -174,12 +180,30 @@ public class MainActivity extends AppCompatActivity {
     public void connectDisconnect(View view) {
         if (!mBtAdapter.isEnabled()) {
             // bluetooth not enabled, prompt user to enable it
-            Intent i = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            startActivityForResult(i, REQ_CODE_BT_ENABDLE);
+            startActivityForResult(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE),
+                    REQ_CODE_BT_ENABDLE);
         } else {
-            // open connection list
-            Intent i = new Intent(MainActivity.this, DeviceListActivity.class);
-            startActivityForResult(i, REQ_CODE_SELECT_DEVICE);
+            // check if button says disconnect or connect
+            Button b = (Button)findViewById(R.id.connect_disconnect_button);
+            if (b.getText().equals(getResources().getString(R.string.button_connect))) {
+                // button is a connect button - open connection list
+                startActivityForResult(new Intent(MainActivity.this, DeviceListActivity.class),
+                        REQ_CODE_SELECT_DEVICE);
+            } else {
+                // button is a disconnect button
+                if (mBtDevice != null) {
+                    mUartService.disconnect();
+                }
+            }
+        }
+    }
+
+    public void startStopLoopback(View view) {
+        try {
+            String data = "MONKEY";
+            mUartService.writeRXCharacteristic(data.getBytes("UTF-8"));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
         }
     }
 }
