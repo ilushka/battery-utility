@@ -1,28 +1,152 @@
 package com.moskovko.myfirstapp;
 
-import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
+import android.app.Activity;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
+import android.os.IBinder;
+import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.EditText;
-import android.animation.ValueAnimator;
 import java.util.Random;
+import android.bluetooth.BluetoothAdapter;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
-    public final static String EXTRA_MESSAGE = "com.moskovko.myfirstapp.MESSAGE";
-    private BatteryChargeView mBatteryCharge;
-    private BatteryHealthView mBatterHealth;
-    private Random mRandomChargeGenerator;
+    private static final int REQ_CODE_BT_ENABDLE    = 1;    // enabling bluetooth
+    private static final int REQ_CODE_SELECT_DEVICE = 2;    // select bluetooth device
+
+    private BatteryChargeView mBatteryCharge;   // battery charge bar
+    private BatteryHealthView mBatterHealth;    // battery health bar
+    private Random mRandomChargeGenerator;      // random values for charge & health
+    private BluetoothAdapter mBtAdapter;        // bluetooth adapter
+    private BluetoothDevice mBtDevice;          // bluetooth device
+    private UartService mUartService;           // UART-over-bluetooth service
+
+    // callbacks for service connect/disconnect
+    private ServiceConnection mUartServiceConn =  new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            mUartService = ((UartService.LocalBinder)service).getService();
+            if (!mUartService.initialize()) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this,
+                                "Unable to initialize UART service",
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mUartService = null;
+        }
+    };
+
+    // broadcast event receiver for UART service
+    private final BroadcastReceiver mUartBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+
+            if (action.equals(UartService.ACTION_GATT_CONNECTED)) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this,
+                                "Connected to " + mBtDevice.getName(),
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+            } else if (action.equals(UartService.ACTION_GATT_DISCONNECTED)) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this,
+                                "Disconnected from " + mBtDevice.getName(),
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+            } else if (action.equals(UartService.ACTION_GATT_SERVICES_DISCOVERED)) {
+                mUartService.enableTXNotification();
+            } else if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this,
+                                "Data available",
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+            } else if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(MainActivity.this,
+                                "UART is not supported",
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+            }
+        }   // public void onReceive(Context context, Intent intent)
+    };  // private final BroadcastReceiver mUartBroadcastReceiver = new BroadcastReceiver()
+
+    private void initUartService() {
+        // broadcast filter - what events does receiver want
+        final IntentFilter filter = new IntentFilter();
+        filter.addAction(UartService.ACTION_GATT_CONNECTED);
+        filter.addAction(UartService.ACTION_GATT_DISCONNECTED);
+        filter.addAction(UartService.ACTION_GATT_SERVICES_DISCOVERED);
+        filter.addAction(UartService.ACTION_DATA_AVAILABLE);
+        filter.addAction(UartService.DEVICE_DOES_NOT_SUPPORT_UART);
+
+        // bind to service
+        Intent i = new Intent(this, UartService.class);
+        bindService(i, mUartServiceConn, Context.BIND_AUTO_CREATE);
+        LocalBroadcastManager.getInstance(this).registerReceiver(mUartBroadcastReceiver, filter);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setContentView(R.layout.activity_main);
+
+        // initialization
         mBatteryCharge = (BatteryChargeView)findViewById(R.id.battery_charge);
         mBatterHealth = (BatteryHealthView)findViewById(R.id.battery_health);
         mRandomChargeGenerator = new Random();
+        mBtAdapter = BluetoothAdapter.getDefaultAdapter();
+        if (mBtAdapter == null) {
+            Toast.makeText(this, "Cannot get default bluetooth adapter", Toast.LENGTH_LONG).show();
+        }
+        initUartService();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case REQ_CODE_BT_ENABDLE:
+                break;
+            case REQ_CODE_SELECT_DEVICE:
+                if (resultCode == Activity.RESULT_OK && data != null) {
+                    // connect to device at specified address
+                    String deviceAddress = data.getStringExtra(BluetoothDevice.EXTRA_DEVICE);
+                    mBtDevice = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(deviceAddress);
+                    mUartService.connect(deviceAddress);
+                }
+                break;
+            default:
+                break;
+        }
     }
 
     /*
@@ -45,5 +169,17 @@ public class MainActivity extends AppCompatActivity {
         */
         mBatteryCharge.setCurrentChargeLevel(mRandomChargeGenerator.nextFloat());
         mBatterHealth.setCurrentHealthLevel(mRandomChargeGenerator.nextFloat());
+    }
+
+    public void connectDisconnect(View view) {
+        if (!mBtAdapter.isEnabled()) {
+            // bluetooth not enabled, prompt user to enable it
+            Intent i = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(i, REQ_CODE_BT_ENABDLE);
+        } else {
+            // open connection list
+            Intent i = new Intent(MainActivity.this, DeviceListActivity.class);
+            startActivityForResult(i, REQ_CODE_SELECT_DEVICE);
+        }
     }
 }

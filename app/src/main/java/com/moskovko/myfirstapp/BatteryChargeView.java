@@ -54,6 +54,7 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
     }
 
     public void setCurrentChargeLevel(float level) {
+        // TODO: cancel old animation
         ValueAnimator animation = ValueAnimator.ofFloat(mCurrentChargeLevel, level);
         // scale animation time to how much movement the bar needs to make
         animation.setDuration((int)(FULL_BAR_ANIMATION_DURATION *
