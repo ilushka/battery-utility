@@ -13,22 +13,27 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
-import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 import java.util.Random;
 import android.bluetooth.BluetoothAdapter;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
     private static final int REQ_CODE_BT_ENABDLE    = 1;    // enabling bluetooth
     private static final int REQ_CODE_SELECT_DEVICE = 2;    // select bluetooth device
+    private static final int GATT_ATTRIBUTE_MAX_BYTES = 20;   // max bytes to read/write for BLE
 
     private BatteryChargeView mBatteryCharge;   // battery charge bar
     private BatteryHealthView mBatterHealth;    // battery health bar
-    private Random mRandomChargeGenerator;      // random values for charge & health
+    private Random mRandomDataGenerator;        // random values for charge & health
     private BluetoothAdapter mBtAdapter;        // bluetooth adapter
     private BluetoothDevice mBtDevice;          // bluetooth device
     private UartService mUartService;           // UART-over-bluetooth service
+    private byte[] mLoopbackBuffer;             // data sent during loopback
+    private boolean mLoopbackStarted;           // is loopback running
+    private int mLoopbackSuccessCount;          // number of successful loopbacks
 
     // callbacks for service connect/disconnect
     private ServiceConnection mUartServiceConn =  new ServiceConnection() {
@@ -69,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
                         b.setText(R.string.button_disconnect);
                     }
                 });
+
             } else if (action.equals(UartService.ACTION_GATT_DISCONNECTED)) {
                 runOnUiThread(new Runnable() {
                     @Override
@@ -82,16 +88,39 @@ public class MainActivity extends AppCompatActivity {
                         b.setText(R.string.button_connect);
                     }
                 });
+
             } else if (action.equals(UartService.ACTION_GATT_SERVICES_DISCOVERED)) {
                 mUartService.enableTXNotification();
+
             } else if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Toast.makeText(MainActivity.this, "Data available",
-                                Toast.LENGTH_LONG).show();
+                byte[] response = intent.getByteArrayExtra(UartService.EXTRA_DATA);
+                if (loopbackResponseVerified(response)) {
+                    // response data is verified
+                    mLoopbackSuccessCount++;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            String s = "Bytes transferred: " + Integer
+                                    .toString(mLoopbackSuccessCount * GATT_ATTRIBUTE_MAX_BYTES);
+                            ((TextView)findViewById(R.id.loopback_status)).setText(s);
+                        }
+                    });
+                    // send next packet
+                    if (mLoopbackStarted) {
+                        sendLoopbackData();
                     }
-                });
+                } else {
+                    // received wrong loopback data
+                    mLoopbackStarted = false;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(MainActivity.this, "Failed to verify loopback data",
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
+
             } else if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)) {
                 runOnUiThread(new Runnable() {
                     @Override
@@ -128,13 +157,28 @@ public class MainActivity extends AppCompatActivity {
         // initialization
         mBatteryCharge = (BatteryChargeView)findViewById(R.id.battery_charge);
         mBatterHealth = (BatteryHealthView)findViewById(R.id.battery_health);
-        mRandomChargeGenerator = new Random();
+        mRandomDataGenerator = new Random();
         mBtAdapter = BluetoothAdapter.getDefaultAdapter();
         mBtDevice = null;
+        mLoopbackStarted = false;
+        mLoopbackBuffer = new byte[GATT_ATTRIBUTE_MAX_BYTES];
         if (mBtAdapter == null) {
             Toast.makeText(this, "Cannot get default bluetooth adapter", Toast.LENGTH_LONG).show();
         }
         initUartService();
+    }
+
+    private void generateLoopbackData() {
+        mRandomDataGenerator.nextBytes(mLoopbackBuffer);
+    }
+
+    private boolean loopbackResponseVerified(byte[] response) {
+        return Arrays.equals(mLoopbackBuffer, response);
+    }
+
+    private void sendLoopbackData() {
+        generateLoopbackData();
+        mUartService.writeRXCharacteristic(mLoopbackBuffer);
     }
 
     @Override
@@ -155,26 +199,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /*
-    public void sendMessage(View view) {
-        Intent intent = new Intent(this, DisplayMessageActivity.class);
-        EditText editText = (EditText)findViewById(R.id.edit_message);
-        String message = editText.getText().toString();
-        intent.putExtra(EXTRA_MESSAGE, message);
-        startActivity(intent);
-    }
-    */
-
     public void startAnimation(View view) {
-        /*
-        ValueAnimator animation = ValueAnimator.ofFloat(mBatteryCharge.getCurrentChargeLevel(),
-                        mRandomChargeGenerator.nextFloat());
-        animation.setDuration(1500);
-        animation.addUpdateListener(mBatteryCharge);
-        animation.start();
-        */
-        mBatteryCharge.setCurrentChargeLevel(mRandomChargeGenerator.nextFloat());
-        mBatterHealth.setCurrentHealthLevel(mRandomChargeGenerator.nextFloat());
+        mBatteryCharge.setCurrentChargeLevel(mRandomDataGenerator.nextFloat());
+        mBatterHealth.setCurrentHealthLevel(mRandomDataGenerator.nextFloat());
     }
 
     public void connectDisconnect(View view) {
@@ -199,11 +226,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startStopLoopback(View view) {
-        try {
-            String data = "MONKEY";
-            mUartService.writeRXCharacteristic(data.getBytes("UTF-8"));
-        } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+        Button b = (Button)findViewById(R.id.start_stop_loopback);
+        if (mLoopbackStarted) {
+            mLoopbackStarted = false;
+            b.setText(R.string.start_loopback);
+        } else {
+            mLoopbackStarted = true;
+            mLoopbackSuccessCount = 0;
+            sendLoopbackData();
+            b.setText(R.string.stop_loopback);
         }
     }
 }
