@@ -39,6 +39,7 @@ import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -55,15 +56,20 @@ public class UartService extends Service {
     private String mBluetoothDeviceAddress;
     private BluetoothGatt mBluetoothGatt;
     private int mConnectionState = STATE_DISCONNECTED;
-    private byte[] mWriteData = null;
-    private int mWriteDataOffset = 0;       // offsets written data in the write buffer
-    private int mWritePendingCount = 0;     // pending write byte count
+    private byte[] mWriteData = null;       // data to write/transmitted
+    private int mWriteDataOffset = 0;       // offsets already written data in the write buffer
+    private int mWritePendingCount = 0;     // write data that is currently being transmitted
+    // data that is read/received
+    private ByteArrayOutputStream mReadData = new ByteArrayOutputStream();
+    private boolean mReceivingData = false;
 
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
 
     private static final int CHARACTERISTIC_MAX_BYTE_COUNT  = 20;
+
+    private static final char[] hexDigits = "0123456789ABCDEF".toCharArray();
 
     public final static String ACTION_GATT_CONNECTED =
             "com.nordicsemi.nrfUART.ACTION_GATT_CONNECTED";
@@ -86,6 +92,9 @@ public class UartService extends Service {
     public static final UUID RX_SERVICE_UUID = UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
     public static final UUID RX_CHAR_UUID = UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
     public static final UUID TX_CHAR_UUID = UUID.fromString("6e400003-b5a3-f393-e0a9-e50e24dcca9e");
+
+    public static final byte FRAME_START    = 'g';
+    public static final byte FRAME_END      = 'h';
 
    
     // Implements callback methods for GATT events that the app cares about.  For example,
@@ -116,13 +125,15 @@ public class UartService extends Service {
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
             	Log.w(TAG, "mBluetoothGatt = " + mBluetoothGatt );
-            	
+
+            	enableTXNotification();
                 broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
             } else {
                 Log.w(TAG, "onServicesDiscovered received: " + status);
             }
         }
 
+        /* MONKEY:
         @Override
         public void onCharacteristicRead(BluetoothGatt gatt,
                                          BluetoothGattCharacteristic characteristic,
@@ -131,11 +142,42 @@ public class UartService extends Service {
                 broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
             }
         }
+        */
+
+        // returns true if byte is a valid hex digit (encoded in ASCII)
+        private boolean isHexDigit(byte b) {
+            if (    (b >= 'A' && b <= 'F') ||
+                    (b >= 'a' && b <= 'f') ||
+                    (b >= '0' && b <= '9')) {
+                return true;
+            }
+            return false;
+        }
 
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
-            broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+            // broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+            byte[] data = characteristic.getValue();
+            for (byte b : data) {
+                if (b == FRAME_START) {
+                    mReadData.reset();
+                    mReceivingData = true;
+                }
+                if (mReceivingData) {
+                    if (isHexDigit(b)) {
+                        mReadData.write(b);
+                    } else {
+                        // TODO: what is it? what to do?
+                    }
+                }
+                // TODO: check for max frame size
+                if (b == FRAME_END) {
+                    mReceivingData = false;
+                    // MONKEY:
+                    Log.w(TAG, "received serialcomm frame: " + mReadData.toString());
+                }
+            }
         }
 
         @Override
@@ -299,6 +341,7 @@ public class UartService extends Service {
      *
      * @param characteristic The characteristic to read from.
      */
+    /*
     public void readCharacteristic(BluetoothGattCharacteristic characteristic) {
         if (mBluetoothAdapter == null || mBluetoothGatt == null) {
             Log.w(TAG, "BluetoothAdapter not initialized");
@@ -306,6 +349,7 @@ public class UartService extends Service {
         }
         mBluetoothGatt.readCharacteristic(characteristic);
     }
+    */
 
     /**
      * Enables or disables notification on a give characteristic.
@@ -318,7 +362,7 @@ public class UartService extends Service {
      *
      * @return 
      */
-    public void enableTXNotification()
+    private void enableTXNotification()
     { 
     	/*
     	if (mBluetoothGatt == null) {
@@ -345,6 +389,27 @@ public class UartService extends Service {
         descriptor.setValue(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE);
         mBluetoothGatt.writeDescriptor(descriptor);
     	
+    }
+
+    // convert byte array to byte array of ASCII hex values representing the byte array
+    // http://stackoverflow.com/questions/9655181/how-to-convert-a-byte-array-to-a-hex-string-in-java
+    public static byte[] convertByteArrayToHex(byte[] data) {
+        byte[] hexData = new byte[data.length * 2];
+        for (int ii = 0; ii < data.length; ii++) {
+            hexData[ii * 2] = (byte)hexDigits[(data[ii] >>> 4) & 0x0F];
+            hexData[ii * 2 + 1] = (byte)hexDigits[data[ii] & 0x0F];
+        }
+        return hexData;
+    }
+
+    // convert ASCII hex encoded string to byte array
+    public static byte[] convertHexStringToByteArray(String str) {
+        byte[] data = new byte[str.length() / 2];
+        for (int ii = 0; ii < str.length(); ii += 2) {
+            data[ii / 2] = (byte)(((Character.digit(str.charAt(ii), 16) << 4) & 0xF0) |
+                    (Character.digit(str.charAt(ii + 1), 16) & 0x0F));
+        }
+        return data;
     }
 
     private void initiateWrite(byte[] value) {
@@ -380,9 +445,22 @@ public class UartService extends Service {
         return Arrays.copyOfRange(mWriteData, mWriteDataOffset, (mWriteDataOffset + sliceSize));
     }
 
-    public void writeRXCharacteristic(byte[] value)
+    public void writeData(byte[] data)
     {
-        mWriteData = Arrays.copyOf(value, value.length);
+        byte[] beginning = { FRAME_START };
+        byte[] ending = { FRAME_END };
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+
+        // convert data to ASCII hex, add frame start and frame end characters
+        byte[] asciiHex = convertByteArrayToHex(data);
+        try {
+            output.write(beginning);
+            output.write(asciiHex);
+            output.write(ending);
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+        }
+        mWriteData = output.toByteArray();
         mWritePendingCount = 0;
         mWriteDataOffset = 0;
 

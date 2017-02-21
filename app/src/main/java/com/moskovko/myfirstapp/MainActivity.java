@@ -16,6 +16,7 @@ import android.util.Log;
 import android.view.View;
 
 import java.io.ByteArrayOutputStream;
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Random;
 import android.bluetooth.BluetoothAdapter;
@@ -39,8 +40,6 @@ public class MainActivity extends AppCompatActivity {
     private UartService mUartService;           // UART-over-bluetooth service
     private byte[] mLoopbackRequest;                    // data sent during loopback
     private ByteArrayOutputStream mLoopbackResponse;    // data received during loopback
-    private boolean mLoopbackStarted;           // is loopback running
-    private int mLoopbackSuccessCount;          // number of successful loopbacked bytes
 
     // callbacks for service connect/disconnect
     private ServiceConnection mUartServiceConn =  new ServiceConnection() {
@@ -96,46 +95,9 @@ public class MainActivity extends AppCompatActivity {
                 });
 
             } else if (action.equals(UartService.ACTION_GATT_SERVICES_DISCOVERED)) {
-                mUartService.enableTXNotification();
 
             } else if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {
-                try {
-                    mLoopbackResponse.write(intent.getByteArrayExtra(UartService.EXTRA_DATA));
-                } catch (java.io.IOException e) {
-                    e.printStackTrace();
-                }
 
-                // keep adding received packets until we get desired byte count
-                if (mLoopbackResponse.size() >= LOOPBACK_BYTE_COUNT) {
-                    // received all data back
-                    if (loopbackResponseVerified(mLoopbackResponse.toByteArray())) {
-                        // response data is verified
-                        mLoopbackSuccessCount += mLoopbackResponse.size();
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                String s = "Bytes transferred: " + Integer
-                                        .toString(mLoopbackSuccessCount);
-                                ((TextView) findViewById(R.id.loopback_status)).setText(s);
-                            }
-                        });
-
-                        // send next packet
-                        if (mLoopbackStarted) {
-                            sendLoopbackData();
-                        }
-                    } else {
-                        // received wrong loopback data
-                        mLoopbackStarted = false;
-                        runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                Toast.makeText(MainActivity.this, "Failed to verify loopback data",
-                                        Toast.LENGTH_LONG).show();
-                            }
-                        });
-                    }
-                }
             } else if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)) {
                 runOnUiThread(new Runnable() {
                     @Override
@@ -175,8 +137,7 @@ public class MainActivity extends AppCompatActivity {
         mRandomDataGenerator = new Random();
         mBtAdapter = BluetoothAdapter.getDefaultAdapter();
         mBtDevice = null;
-        mLoopbackStarted = false;
-        mLoopbackRequest = new byte[LOOPBACK_BYTE_COUNT];
+        mLoopbackRequest = null;
         mLoopbackResponse = new ByteArrayOutputStream();
         if (mBtAdapter == null) {
             Toast.makeText(this, "Cannot get default bluetooth adapter", Toast.LENGTH_LONG).show();
@@ -185,7 +146,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void generateLoopbackData() {
-        mRandomDataGenerator.nextBytes(mLoopbackRequest);
+        String s = "DEADBEEFFEEDFACE";
+        mLoopbackRequest = UartService.convertHexStringToByteArray(s);
     }
 
     private boolean loopbackResponseVerified(byte[] response) {
@@ -196,7 +158,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void sendLoopbackData() {
         generateLoopbackData();
-        mUartService.writeRXCharacteristic(mLoopbackRequest);
+        mUartService.writeData(mLoopbackRequest);
         mLoopbackResponse.reset();
     }
 
@@ -245,15 +207,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void startStopLoopback(View view) {
-        Button b = (Button)findViewById(R.id.start_stop_loopback);
-        if (mLoopbackStarted) {
-            mLoopbackStarted = false;
-            b.setText(R.string.start_loopback);
-        } else {
-            mLoopbackStarted = true;
-            mLoopbackSuccessCount = 0;
-            sendLoopbackData();
-            b.setText(R.string.stop_loopback);
-        }
+        sendLoopbackData();
     }
 }
