@@ -39,6 +39,7 @@ import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -54,10 +55,15 @@ public class UartService extends Service {
     private String mBluetoothDeviceAddress;
     private BluetoothGatt mBluetoothGatt;
     private int mConnectionState = STATE_DISCONNECTED;
+    private byte[] mWriteData = null;
+    private int mWriteDataOffset = 0;       // offsets written data in the write buffer
+    private int mWritePendingCount = 0;     // pending write byte count
 
     private static final int STATE_DISCONNECTED = 0;
     private static final int STATE_CONNECTING = 1;
     private static final int STATE_CONNECTED = 2;
+
+    private static final int CHARACTERISTIC_MAX_BYTE_COUNT  = 20;
 
     public final static String ACTION_GATT_CONNECTED =
             "com.nordicsemi.nrfUART.ACTION_GATT_CONNECTED";
@@ -80,7 +86,7 @@ public class UartService extends Service {
     public static final UUID RX_SERVICE_UUID = UUID.fromString("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
     public static final UUID RX_CHAR_UUID = UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
     public static final UUID TX_CHAR_UUID = UUID.fromString("6e400003-b5a3-f393-e0a9-e50e24dcca9e");
-    
+
    
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
@@ -130,6 +136,21 @@ public class UartService extends Service {
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
             broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
+        }
+
+        @Override
+        public void onCharacteristicWrite(BluetoothGatt gatt,
+                                          BluetoothGattCharacteristic characteristic, int status) {
+            Log.w(TAG, "onCharacteristicWrite status: " + status);
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                // successfully wrote a packet - offset written data in write buffer
+                mWriteDataOffset += mWritePendingCount;
+                if (mWriteDataOffset >= mWriteData.length) {
+                    // wrote all data
+                } else {
+                    initiateWrite(getNextWritePacket());
+                }
+            }
         }
     };
 
@@ -325,28 +346,48 @@ public class UartService extends Service {
         mBluetoothGatt.writeDescriptor(descriptor);
     	
     }
-    
-    public void writeRXCharacteristic(byte[] value)
-    {
-    
-    	
-    	BluetoothGattService RxService = mBluetoothGatt.getService(RX_SERVICE_UUID);
-    	showMessage("mBluetoothGatt null"+ mBluetoothGatt);
-    	if (RxService == null) {
+
+    private void initiateWrite(byte[] value) {
+        BluetoothGattService RxService = mBluetoothGatt.getService(RX_SERVICE_UUID);
+        showMessage("mBluetoothGatt null"+ mBluetoothGatt);
+        if (RxService == null) {
             showMessage("Rx service not found!");
             broadcastUpdate(DEVICE_DOES_NOT_SUPPORT_UART);
             return;
         }
-    	BluetoothGattCharacteristic RxChar = RxService.getCharacteristic(RX_CHAR_UUID);
+        BluetoothGattCharacteristic RxChar = RxService.getCharacteristic(RX_CHAR_UUID);
         if (RxChar == null) {
             showMessage("Rx charateristic not found!");
             broadcastUpdate(DEVICE_DOES_NOT_SUPPORT_UART);
             return;
         }
         RxChar.setValue(value);
-    	boolean status = mBluetoothGatt.writeCharacteristic(RxChar);
-    	
-        Log.d(TAG, "write TXchar - status=" + status);  
+        mWritePendingCount = value.length;
+        boolean status = mBluetoothGatt.writeCharacteristic(RxChar);
+
+        Log.d(TAG, "write TXchar - status=" + status);
+    }
+
+    // return write data in packet of maximum size of 20 bytes
+    private byte[] getNextWritePacket() {
+        if (mWriteData.length <= CHARACTERISTIC_MAX_BYTE_COUNT) {
+            // return all data
+            return mWriteData;
+        }
+        // get maximum of 20 bytes of slice of data
+        int sliceSize = Math.min(CHARACTERISTIC_MAX_BYTE_COUNT,
+                (mWriteData.length - mWriteDataOffset));
+        return Arrays.copyOfRange(mWriteData, mWriteDataOffset, (mWriteDataOffset + sliceSize));
+    }
+
+    public void writeRXCharacteristic(byte[] value)
+    {
+        mWriteData = Arrays.copyOf(value, value.length);
+        mWritePendingCount = 0;
+        mWriteDataOffset = 0;
+
+        // send first packet
+        initiateWrite(getNextWritePacket());
     }
     
     private void showMessage(String msg) {
