@@ -13,4 +13,5 @@
     <string name="paired">Paired</string>
     <string name="start_loopback">Start loopback</string>
     <string name="stop_loopback">Stop loopback</string>
+    <string name="response">Response:</string>
 </resources>

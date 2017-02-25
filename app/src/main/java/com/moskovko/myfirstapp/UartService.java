@@ -83,6 +83,8 @@ public class UartService extends Service {
             "com.nordicsemi.nrfUART.EXTRA_DATA";
     public final static String DEVICE_DOES_NOT_SUPPORT_UART =
             "com.nordicsemi.nrfUART.DEVICE_DOES_NOT_SUPPORT_UART";
+    public final static String ACTION_FRAME_AVAILABLE =
+            "com.nordicsemi.nrfUART.ACTION_FRAME_AVAILABLE";
     
     public static final UUID TX_POWER_UUID = UUID.fromString("00001804-0000-1000-8000-00805f9b34fb");
     public static final UUID TX_POWER_LEVEL_UUID = UUID.fromString("00002a07-0000-1000-8000-00805f9b34fb");
@@ -157,7 +159,6 @@ public class UartService extends Service {
         @Override
         public void onCharacteristicChanged(BluetoothGatt gatt,
                                             BluetoothGattCharacteristic characteristic) {
-            // broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
             byte[] data = characteristic.getValue();
             for (byte b : data) {
                 if (b == FRAME_START) {
@@ -176,6 +177,8 @@ public class UartService extends Service {
                     mReceivingData = false;
                     // MONKEY:
                     Log.w(TAG, "received serialcomm frame: " + mReadData.toString());
+                    // broadcast data
+                    broadcastUpdate(ACTION_FRAME_AVAILABLE, mReadData.toByteArray());
                 }
             }
         }
@@ -213,6 +216,12 @@ public class UartService extends Service {
         } else {
         	
         }
+        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+    }
+
+    private void broadcastUpdate(final String action, final byte[] data) {
+        final Intent intent = new Intent(action);
+        intent.putExtra(EXTRA_DATA, data);
         LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
     }
 

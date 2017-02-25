@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical">
-    <LinearLayout
+    <!-- LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
         <com.moskovko.myfirstapp.BatteryChargeView
@@ -18,15 +18,15 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             custom:testAttr="MONKEY"/>
-    </LinearLayout>
+    </LinearLayout -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
-        <Button
+        <!-- Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/button_start_animation"
-            android:onClick="startAnimation"/>
+            android:onClick="startAnimation"/ -->
         <Button
             android:id="@+id/connect_disconnect_button"
             android:layout_width="wrap_content"
@@ -37,9 +37,13 @@
             android:id="@+id/start_stop_loopback"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/start_loopback"
+            android:text="@string/button_send"
             android:onClick="startStopLoopback"/>
     </LinearLayout>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/response"/>
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

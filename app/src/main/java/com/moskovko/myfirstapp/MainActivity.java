@@ -40,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
     private UartService mUartService;           // UART-over-bluetooth service
     private byte[] mLoopbackRequest;                    // data sent during loopback
     private ByteArrayOutputStream mLoopbackResponse;    // data received during loopback
+    private TextView mLoopbackStatus;           // loopback status text
 
     // callbacks for service connect/disconnect
     private ServiceConnection mUartServiceConn =  new ServiceConnection() {
@@ -98,6 +99,14 @@ public class MainActivity extends AppCompatActivity {
 
             } else if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {
 
+            } else if (action.equals(UartService.ACTION_FRAME_AVAILABLE)) {
+                final byte[] data = intent.getByteArrayExtra(UartService.EXTRA_DATA);
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        mLoopbackStatus.setText(new String(data));
+                    }
+                });
             } else if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)) {
                 runOnUiThread(new Runnable() {
                     @Override
@@ -118,6 +127,7 @@ public class MainActivity extends AppCompatActivity {
         filter.addAction(UartService.ACTION_GATT_SERVICES_DISCOVERED);
         filter.addAction(UartService.ACTION_DATA_AVAILABLE);
         filter.addAction(UartService.DEVICE_DOES_NOT_SUPPORT_UART);
+        filter.addAction(UartService.ACTION_FRAME_AVAILABLE);
 
         // bind to service
         bindService(new Intent(this, UartService.class), mUartServiceConn,
@@ -132,13 +142,16 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // initialization
+        /*
         mBatteryCharge = (BatteryChargeView)findViewById(R.id.battery_charge);
         mBatterHealth = (BatteryHealthView)findViewById(R.id.battery_health);
+        */
         mRandomDataGenerator = new Random();
         mBtAdapter = BluetoothAdapter.getDefaultAdapter();
         mBtDevice = null;
         mLoopbackRequest = null;
         mLoopbackResponse = new ByteArrayOutputStream();
+        mLoopbackStatus = (TextView)findViewById(R.id.loopback_status);
         if (mBtAdapter == null) {
             Toast.makeText(this, "Cannot get default bluetooth adapter", Toast.LENGTH_LONG).show();
         }
