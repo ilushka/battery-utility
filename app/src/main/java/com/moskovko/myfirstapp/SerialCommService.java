@@ -1,25 +1,3 @@
-
-/*
- * Copyright (c) 2015, Nordic Semiconductor
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
- *
- * 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- *
- * 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this
- * software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- * ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
- * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
 package com.moskovko.myfirstapp;
 
 import android.app.Service;
@@ -55,7 +33,7 @@ public class SerialCommService extends Service {
     private int mWritePendingCount = 0;     // write data that is currently being transmitted
     // data that is read/received
     private ByteArrayOutputStream mReadData = new ByteArrayOutputStream();
-    private boolean mReceivingData = false;
+    private boolean mReceivingFrame = false;    // in process of receiving SerialComm frame
 
     private static final int CHARACTERISTIC_MAX_BYTE_COUNT  = 20;
 
@@ -67,12 +45,10 @@ public class SerialCommService extends Service {
             "com.nordicsemi.nrfUART.ACTION_GATT_DISCONNECTED";
     public final static String ACTION_GATT_SERVICES_DISCOVERED =
             "com.nordicsemi.nrfUART.ACTION_GATT_SERVICES_DISCOVERED";
-    public final static String ACTION_DATA_AVAILABLE =
-            "com.nordicsemi.nrfUART.ACTION_DATA_AVAILABLE";
     public final static String EXTRA_DATA =
             "com.nordicsemi.nrfUART.EXTRA_DATA";
-    public final static String DEVICE_DOES_NOT_SUPPORT_UART =
-            "com.nordicsemi.nrfUART.DEVICE_DOES_NOT_SUPPORT_UART";
+    public final static String DEVICE_DOES_NOT_SUPPORT_SERIALCOMM =
+            "com.nordicsemi.nrfUART.DEVICE_DOES_NOT_SUPPORT_SERIALCOMM";
     public final static String ACTION_FRAME_AVAILABLE =
             "com.nordicsemi.nrfUART.ACTION_FRAME_AVAILABLE";
     
@@ -140,9 +116,9 @@ public class SerialCommService extends Service {
             for (byte b : data) {
                 if (b == FRAME_START) {
                     mReadData.reset();
-                    mReceivingData = true;
+                    mReceivingFrame = true;
                 }
-                if (mReceivingData) {
+                if (mReceivingFrame) {
                     if (isHexDigit(b)) {
                         mReadData.write(b);
                     } else {
@@ -151,7 +127,7 @@ public class SerialCommService extends Service {
                 }
                 // TODO: check for max frame size
                 if (b == FRAME_END) {
-                    mReceivingData = false;
+                    mReceivingFrame = false;
                     // MONKEY:
                     Log.w(TAG, "received serialcomm frame: " + mReadData.toString());
                     // broadcast data
@@ -309,13 +285,13 @@ public class SerialCommService extends Service {
     	BluetoothGattService RxService = mBluetoothGatt.getService(RX_SERVICE_UUID);
     	if (RxService == null) {
             showMessage("Rx service not found!");
-            broadcastUpdate(DEVICE_DOES_NOT_SUPPORT_UART);
+            broadcastUpdate(DEVICE_DOES_NOT_SUPPORT_SERIALCOMM);
             return;
         }
     	BluetoothGattCharacteristic TxChar = RxService.getCharacteristic(TX_CHAR_UUID);
         if (TxChar == null) {
             showMessage("Tx charateristic not found!");
-            broadcastUpdate(DEVICE_DOES_NOT_SUPPORT_UART);
+            broadcastUpdate(DEVICE_DOES_NOT_SUPPORT_SERIALCOMM);
             return;
         }
         mBluetoothGatt.setCharacteristicNotification(TxChar,true);
@@ -353,13 +329,13 @@ public class SerialCommService extends Service {
         showMessage("mBluetoothGatt null"+ mBluetoothGatt);
         if (RxService == null) {
             showMessage("Rx service not found!");
-            broadcastUpdate(DEVICE_DOES_NOT_SUPPORT_UART);
+            broadcastUpdate(DEVICE_DOES_NOT_SUPPORT_SERIALCOMM);
             return;
         }
         BluetoothGattCharacteristic RxChar = RxService.getCharacteristic(RX_CHAR_UUID);
         if (RxChar == null) {
             showMessage("Rx charateristic not found!");
-            broadcastUpdate(DEVICE_DOES_NOT_SUPPORT_UART);
+            broadcastUpdate(DEVICE_DOES_NOT_SUPPORT_SERIALCOMM);
             return;
         }
         RxChar.setValue(value);
