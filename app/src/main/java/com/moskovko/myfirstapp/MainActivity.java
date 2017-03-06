@@ -16,11 +16,11 @@ import android.util.Log;
 import android.view.View;
 
 import java.io.ByteArrayOutputStream;
-import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Random;
 import android.bluetooth.BluetoothAdapter;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -37,17 +37,18 @@ public class MainActivity extends AppCompatActivity {
     private Random mRandomDataGenerator;        // random values for charge & health
     private BluetoothAdapter mBtAdapter;        // bluetooth adapter
     private BluetoothDevice mBtDevice;          // bluetooth device
-    private UartService mUartService;           // UART-over-bluetooth service
+    private SerialCommService mSerialCommService;           // UART-over-bluetooth service
     private byte[] mLoopbackRequest;                    // data sent during loopback
     private ByteArrayOutputStream mLoopbackResponse;    // data received during loopback
     private TextView mLoopbackStatus;           // loopback status text
+    private EditText mInputData;                // input data to be sent over BLE and the UART
 
     // callbacks for service connect/disconnect
     private ServiceConnection mUartServiceConn =  new ServiceConnection() {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            mUartService = ((UartService.LocalBinder)service).getService();
-            if (!mUartService.initialize()) {
+            mSerialCommService = ((SerialCommService.LocalBinder)service).getService();
+            if (!mSerialCommService.initialize()) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -60,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            mUartService = null;
+            mSerialCommService = null;
         }
     };
 
@@ -69,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (action.equals(UartService.ACTION_GATT_CONNECTED)) {
+            if (action.equals(SerialCommService.ACTION_GATT_CONNECTED)) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -81,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-            } else if (action.equals(UartService.ACTION_GATT_DISCONNECTED)) {
+            } else if (action.equals(SerialCommService.ACTION_GATT_DISCONNECTED)) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -95,19 +96,19 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-            } else if (action.equals(UartService.ACTION_GATT_SERVICES_DISCOVERED)) {
+            } else if (action.equals(SerialCommService.ACTION_GATT_SERVICES_DISCOVERED)) {
 
-            } else if (action.equals(UartService.ACTION_DATA_AVAILABLE)) {
+            } else if (action.equals(SerialCommService.ACTION_DATA_AVAILABLE)) {
 
-            } else if (action.equals(UartService.ACTION_FRAME_AVAILABLE)) {
-                final byte[] data = intent.getByteArrayExtra(UartService.EXTRA_DATA);
+            } else if (action.equals(SerialCommService.ACTION_FRAME_AVAILABLE)) {
+                final byte[] data = intent.getByteArrayExtra(SerialCommService.EXTRA_DATA);
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         mLoopbackStatus.setText(new String(data));
                     }
                 });
-            } else if (action.equals(UartService.DEVICE_DOES_NOT_SUPPORT_UART)) {
+            } else if (action.equals(SerialCommService.DEVICE_DOES_NOT_SUPPORT_UART)) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
@@ -122,15 +123,15 @@ public class MainActivity extends AppCompatActivity {
     private void initUartService() {
         // broadcast filter - what events does receiver want
         final IntentFilter filter = new IntentFilter();
-        filter.addAction(UartService.ACTION_GATT_CONNECTED);
-        filter.addAction(UartService.ACTION_GATT_DISCONNECTED);
-        filter.addAction(UartService.ACTION_GATT_SERVICES_DISCOVERED);
-        filter.addAction(UartService.ACTION_DATA_AVAILABLE);
-        filter.addAction(UartService.DEVICE_DOES_NOT_SUPPORT_UART);
-        filter.addAction(UartService.ACTION_FRAME_AVAILABLE);
+        filter.addAction(SerialCommService.ACTION_GATT_CONNECTED);
+        filter.addAction(SerialCommService.ACTION_GATT_DISCONNECTED);
+        filter.addAction(SerialCommService.ACTION_GATT_SERVICES_DISCOVERED);
+        filter.addAction(SerialCommService.ACTION_DATA_AVAILABLE);
+        filter.addAction(SerialCommService.DEVICE_DOES_NOT_SUPPORT_UART);
+        filter.addAction(SerialCommService.ACTION_FRAME_AVAILABLE);
 
         // bind to service
-        bindService(new Intent(this, UartService.class), mUartServiceConn,
+        bindService(new Intent(this, SerialCommService.class), mUartServiceConn,
                 Context.BIND_AUTO_CREATE);
         LocalBroadcastManager.getInstance(this).registerReceiver(mUartBroadcastReceiver, filter);
     }
@@ -152,6 +153,7 @@ public class MainActivity extends AppCompatActivity {
         mLoopbackRequest = null;
         mLoopbackResponse = new ByteArrayOutputStream();
         mLoopbackStatus = (TextView)findViewById(R.id.loopback_status);
+        mInputData = (EditText)findViewById(R.id.input_data);
         if (mBtAdapter == null) {
             Toast.makeText(this, "Cannot get default bluetooth adapter", Toast.LENGTH_LONG).show();
         }
@@ -160,7 +162,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void generateLoopbackData() {
         String s = "DEADBEEFFEEDFACE";
-        mLoopbackRequest = UartService.convertHexStringToByteArray(s);
+        mLoopbackRequest = SerialCommService.convertHexStringToByteArray(s);
     }
 
     private boolean loopbackResponseVerified(byte[] response) {
@@ -171,8 +173,15 @@ public class MainActivity extends AppCompatActivity {
 
     private void sendLoopbackData() {
         generateLoopbackData();
-        mUartService.writeData(mLoopbackRequest);
+        mSerialCommService.writeData(mLoopbackRequest);
+        mLoopbackStatus.setText("none");
         mLoopbackResponse.reset();
+    }
+
+    private void sendRequest() {
+        byte[] request = SerialCommService.convertHexStringToByteArray(mInputData.getText().toString());
+        mLoopbackStatus.setText("none");
+        mSerialCommService.writeData(request);
     }
 
     @Override
@@ -185,7 +194,7 @@ public class MainActivity extends AppCompatActivity {
                     // connect to device at specified address
                     String deviceAddress = data.getStringExtra(BluetoothDevice.EXTRA_DEVICE);
                     mBtDevice = BluetoothAdapter.getDefaultAdapter().getRemoteDevice(deviceAddress);
-                    mUartService.connect(deviceAddress);
+                    mSerialCommService.connect(deviceAddress);
                 }
                 break;
             default:
@@ -213,13 +222,13 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 // button is a disconnect button
                 if (mBtDevice != null) {
-                    mUartService.disconnect();
+                    mSerialCommService.disconnect();
                 }
             }
         }
     }
 
     public void startStopLoopback(View view) {
-        sendLoopbackData();
+        sendRequest();
     }
 }

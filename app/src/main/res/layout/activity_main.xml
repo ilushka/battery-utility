@@ -39,6 +39,10 @@
             android:layout_height="wrap_content"
             android:text="@string/button_send"
             android:onClick="startStopLoopback"/>
+        <EditText
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/input_data"/>
     </LinearLayout>
     <TextView
         android:layout_width="match_parent"

@@ -44,12 +44,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Service for managing connection and data communication with a GATT server hosted on a
- * given Bluetooth LE device.
- */
-public class UartService extends Service {
-    private final static String TAG = UartService.class.getSimpleName();
+public class SerialCommService extends Service {
+    private final static String TAG = SerialCommService.class.getSimpleName();
 
     private BluetoothManager mBluetoothManager;
     private BluetoothAdapter mBluetoothAdapter;
@@ -95,8 +91,8 @@ public class UartService extends Service {
     public static final UUID RX_CHAR_UUID = UUID.fromString("6e400002-b5a3-f393-e0a9-e50e24dcca9e");
     public static final UUID TX_CHAR_UUID = UUID.fromString("6e400003-b5a3-f393-e0a9-e50e24dcca9e");
 
-    public static final byte FRAME_START    = 'g';
-    public static final byte FRAME_END      = 'h';
+    public static final byte FRAME_START    = ':';
+    public static final byte FRAME_END      = '\n';
 
    
     // Implements callback methods for GATT events that the app cares about.  For example,
@@ -126,25 +122,14 @@ public class UartService extends Service {
         @Override
         public void onServicesDiscovered(BluetoothGatt gatt, int status) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
-            	Log.w(TAG, "mBluetoothGatt = " + mBluetoothGatt );
+                Log.w(TAG, "mBluetoothGatt = " + mBluetoothGatt);
 
-            	enableTXNotification();
+                enableTXNotification();
                 broadcastUpdate(ACTION_GATT_SERVICES_DISCOVERED);
             } else {
                 Log.w(TAG, "onServicesDiscovered received: " + status);
             }
         }
-
-        /* MONKEY:
-        @Override
-        public void onCharacteristicRead(BluetoothGatt gatt,
-                                         BluetoothGattCharacteristic characteristic,
-                                         int status) {
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                broadcastUpdate(ACTION_DATA_AVAILABLE, characteristic);
-            }
-        }
-        */
 
         // returns true if byte is a valid hex digit (encoded in ASCII)
         private boolean isHexDigit(byte b) {
@@ -188,11 +173,12 @@ public class UartService extends Service {
                                           BluetoothGattCharacteristic characteristic, int status) {
             Log.w(TAG, "onCharacteristicWrite status: " + status);
             if (status == BluetoothGatt.GATT_SUCCESS) {
-                // successfully wrote a packet - offset written data in write buffer
+                // successfully wrote a packet - offset written data in the write data buffer
                 mWriteDataOffset += mWritePendingCount;
                 if (mWriteDataOffset >= mWriteData.length) {
                     // wrote all data
                 } else {
+                    // write next packet
                     initiateWrite(getNextWritePacket());
                 }
             }
@@ -226,8 +212,8 @@ public class UartService extends Service {
     }
 
     public class LocalBinder extends Binder {
-        UartService getService() {
-            return UartService.this;
+        SerialCommService getService() {
+            return SerialCommService.this;
         }
     }
 
@@ -400,7 +386,7 @@ public class UartService extends Service {
     	
     }
 
-    // convert byte array to byte array of ASCII hex values representing the byte array
+    // convert byte array to ASCII hex string representing the byte array
     // http://stackoverflow.com/questions/9655181/how-to-convert-a-byte-array-to-a-hex-string-in-java
     public static byte[] convertByteArrayToHex(byte[] data) {
         byte[] hexData = new byte[data.length * 2];
@@ -411,7 +397,7 @@ public class UartService extends Service {
         return hexData;
     }
 
-    // convert ASCII hex encoded string to byte array
+    // convert ASCII hex string to byte array
     public static byte[] convertHexStringToByteArray(String str) {
         byte[] data = new byte[str.length() / 2];
         for (int ii = 0; ii < str.length(); ii += 2) {
@@ -421,6 +407,7 @@ public class UartService extends Service {
         return data;
     }
 
+    // kick off BLE write
     private void initiateWrite(byte[] value) {
         BluetoothGattService RxService = mBluetoothGatt.getService(RX_SERVICE_UUID);
         showMessage("mBluetoothGatt null"+ mBluetoothGatt);
@@ -442,18 +429,19 @@ public class UartService extends Service {
         Log.d(TAG, "write TXchar - status=" + status);
     }
 
-    // return write data in packet of maximum size of 20 bytes
+    // return a packet of write data of maximum size of 20 bytes
     private byte[] getNextWritePacket() {
         if (mWriteData.length <= CHARACTERISTIC_MAX_BYTE_COUNT) {
             // return all data
             return mWriteData;
         }
-        // get maximum of 20 bytes of slice of data
+        // get maximum of 20 byte slice of data
         int sliceSize = Math.min(CHARACTERISTIC_MAX_BYTE_COUNT,
                 (mWriteData.length - mWriteDataOffset));
         return Arrays.copyOfRange(mWriteData, mWriteDataOffset, (mWriteDataOffset + sliceSize));
     }
 
+    // write data to characteristic
     public void writeData(byte[] data)
     {
         byte[] beginning = { FRAME_START };
