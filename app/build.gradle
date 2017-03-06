@@ -4,7 +4,7 @@ android {
     compileSdkVersion 25
     buildToolsVersion "25.0.2"
     defaultConfig {
-        applicationId "com.moskovko.myfirstapp"
+        applicationId 'com.moskovko.battmon'
         minSdkVersion 18
         targetSdkVersion 18
         versionCode 1

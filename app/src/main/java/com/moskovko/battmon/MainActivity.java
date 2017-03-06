@@ -1,4 +1,4 @@
-package com.moskovko.myfirstapp;
+package com.moskovko.battmon;
 
 import android.app.Activity;
 import android.bluetooth.BluetoothDevice;

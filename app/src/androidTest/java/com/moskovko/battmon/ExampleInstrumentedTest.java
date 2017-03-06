@@ -1,4 +1,4 @@
-package com.moskovko.myfirstapp;
+package com.moskovko.battmon;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

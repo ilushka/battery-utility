@@ -1,4 +1,4 @@
-package com.moskovko.myfirstapp;
+package com.moskovko.battmon;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -6,7 +6,6 @@ import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.view.View;
 import android.content.Context;
-import android.content.res.TypedArray;
 import android.animation.ValueAnimator;
 
 /**
