@@ -29,8 +29,6 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int REQ_CODE_BT_ENABDLE    = 1;    // enabling bluetooth
     private static final int REQ_CODE_SELECT_DEVICE = 2;    // select bluetooth device
-    private static final int GATT_ATTRIBUTE_MAX_BYTES   = 20;   // max bytes to read/write for BLE
-    private static final int LOOPBACK_BYTE_COUNT    = 100;      // number of bytes in loopback
 
     private BatteryChargeView mBatteryCharge;   // battery charge bar
     private BatteryHealthView mBatterHealth;    // battery health bar
