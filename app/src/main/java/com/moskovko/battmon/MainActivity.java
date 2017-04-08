@@ -140,17 +140,20 @@ public class MainActivity extends AppCompatActivity {
         mBatteryCharge = (BatteryChargeView)findViewById(R.id.battery_charge);
         mBatterHealth = (BatteryHealthView)findViewById(R.id.battery_health);
         */
+
+        /*
         mRandomDataGenerator = new Random();
         mBtAdapter = BluetoothAdapter.getDefaultAdapter();
         mBtDevice = null;
         mLoopbackRequest = null;
         mLoopbackResponse = new ByteArrayOutputStream();
         mLoopbackStatus = (TextView)findViewById(R.id.loopback_status);
-        mInputData = (EditText)findViewById(R.id.input_data);
+        // MONKEY: mInputData = (EditText)findViewById(R.id.input_data);
         if (mBtAdapter == null) {
             Toast.makeText(this, "Cannot get default bluetooth adapter", Toast.LENGTH_LONG).show();
         }
         initUartService();
+        */
     }
 
     private void sendRequest() {

@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="BatteryChargeView">
-        <attr name="testAttr" format="string"/>
+        <attr name="orientation" format="string"/>
+        <attr name="foregroundColor" format="color"/>
+        <attr name="backgroundColor" format="color"/>
     </declare-styleable>
 </resources>

@@ -1,5 +1,6 @@
 package com.moskovko.battmon;
 
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -13,39 +14,59 @@ import android.animation.ValueAnimator;
  */
 
 public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpdateListener {
-    private static final int MAX_BAR_HEIGHT = 660;
-    private static final int FULL_BAR_ANIMATION_DURATION = 2500;     // milliseconds
+//    private static final int MAX_BAR_HEIGHT = 660;
+    private static final int FULL_BAR_ANIMATION_DURATION = 2500;    // milliseconds
+    private static final float FULL_CHARGE = 1.0f;                  // percentage
 
-    private Paint mBarStrokePaint;
-    private Paint mBarFillPaint;
-    private int mCurrentBarHeight;
+    private Paint mBarBackgroundPaint;
+    private Paint mBarForegroundPaint;
     private float mCurrentChargeLevel;
+    private int mForegroundColor;
+    private int mBackgroundColor;
+    private int mWidth;
+    private int mHeight;
+    private boolean mIsHorizontal;
+    private int mWidthOffset;
+    private int mHeightOffset;
 
     public BatteryChargeView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
-        /*
+        // load custom attributes from the xml file
         TypedArray a = context.getTheme().obtainStyledAttributes(
                 attrs,
                 R.styleable.BatteryChargeView,
                 0, 0);
         try {
-            mTest = a.getString(R.styleable.BatteryChargeView_testAttr);
+            // mTest = a.getString(R.styleable.BatteryChargeView_testAttr);
+            mForegroundColor = a.getColor(R.styleable.BatteryChargeView_foregroundColor,
+                    Color.parseColor("#000000"));
+            mBackgroundColor = a.getColor(R.styleable.BatteryChargeView_backgroundColor,
+                    Color.parseColor("#FFFFFF"));
+            String orientation = a.getString(R.styleable.BatteryChargeView_orientation);
+            if (orientation.equals("horizontal")) {
+                mWidth = 700;
+                mHeight = 300;
+                mIsHorizontal = true;
+            } else {
+                mWidth = 300;
+                mHeight = 700;
+                mIsHorizontal = false;
+            }
         } finally {
             a.recycle();
         }
-        */
 
-        mBarStrokePaint = new Paint();
-        mBarStrokePaint.setColor(Color.parseColor("#000000"));
-        mBarStrokePaint.setStyle(Paint.Style.STROKE);
-        mBarStrokePaint.setStrokeWidth(15);
+        mBarBackgroundPaint = new Paint();
+        mBarBackgroundPaint.setColor(mBackgroundColor);
+        mBarBackgroundPaint.setStyle(Paint.Style.STROKE);
+        mBarForegroundPaint = new Paint();
+        mBarForegroundPaint.setColor(mForegroundColor);
+        mBarForegroundPaint.setStyle(Paint.Style.FILL);
 
-        mBarFillPaint = new Paint();
-        mBarFillPaint.setColor(Color.parseColor("#000000"));
-        mBarFillPaint.setStyle(Paint.Style.FILL);
-
-        mCurrentBarHeight = MAX_BAR_HEIGHT;
+        mCurrentChargeLevel = FULL_CHARGE;
+        mWidthOffset = 0;
+        mHeightOffset = 0;
     }
 
     public float getCurrentChargeLevel() {
@@ -65,7 +86,11 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
     @Override
     public void onAnimationUpdate(ValueAnimator animation) {
         mCurrentChargeLevel = ((Float)animation.getAnimatedValue()).floatValue();
-        mCurrentBarHeight = (int)(MAX_BAR_HEIGHT * mCurrentChargeLevel);
+        if (mIsHorizontal) {
+            mWidthOffset = (int)(mWidth * mCurrentChargeLevel);
+        } else {
+            mHeightOffset = (int)(mHeight * mCurrentChargeLevel);
+        }
         invalidate();
     }
 
@@ -74,15 +99,13 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
         // TODO: create constants
-        setMeasuredDimension(300, 700);
+        setMeasuredDimension(mWidth, mHeight);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-        canvas.drawColor(Color.parseColor("#FF0000"));
-
-        // TODO: create constants
-        canvas.drawRect(0, 0, 300, 700, mBarStrokePaint);
-        canvas.drawRect(20, 680 - mCurrentBarHeight, 280, 680, mBarFillPaint);
+        // canvas.drawColor(Color.parseColor("#FF0000"));
+        canvas.drawRect(0, 0, mWidth, mHeight, mBarBackgroundPaint);
+        canvas.drawRect(0, 0, mWidth - mWidthOffset, mHeight - mHeightOffset, mBarForegroundPaint);
     }
 }
