@@ -14,9 +14,8 @@ import android.animation.ValueAnimator;
  */
 
 public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpdateListener {
-//    private static final int MAX_BAR_HEIGHT = 660;
-    private static final int FULL_BAR_ANIMATION_DURATION = 2500;    // milliseconds
-    private static final float FULL_CHARGE = 1.0f;                  // percentage
+    private static final int    FULL_BAR_ANIMATION_DURATION = 2500;     // milliseconds
+    private static final float  FULL_CHARGE = 1.0f;                     // percentage
 
     private Paint mBarBackgroundPaint;
     private Paint mBarForegroundPaint;
@@ -98,13 +97,13 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
-        // TODO: create constants
+        mWidth = MeasureSpec.getSize(widthMeasureSpec);
+        int heightSize = MeasureSpec.getSize(heightMeasureSpec);
         setMeasuredDimension(mWidth, mHeight);
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-        // canvas.drawColor(Color.parseColor("#FF0000"));
         canvas.drawRect(0, 0, mWidth, mHeight, mBarBackgroundPaint);
         canvas.drawRect(0, 0, mWidth - mWidthOffset, mHeight - mHeightOffset, mBarForegroundPaint);
     }
