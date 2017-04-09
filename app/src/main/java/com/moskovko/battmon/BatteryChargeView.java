@@ -58,7 +58,7 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
 
         mBarBackgroundPaint = new Paint();
         mBarBackgroundPaint.setColor(mBackgroundColor);
-        mBarBackgroundPaint.setStyle(Paint.Style.STROKE);
+        mBarBackgroundPaint.setStyle(Paint.Style.FILL);
         mBarForegroundPaint = new Paint();
         mBarForegroundPaint.setColor(mForegroundColor);
         mBarForegroundPaint.setStyle(Paint.Style.FILL);
@@ -98,7 +98,7 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
         mWidth = MeasureSpec.getSize(widthMeasureSpec);
-        int heightSize = MeasureSpec.getSize(heightMeasureSpec);
+        mHeight = MeasureSpec.getSize(heightMeasureSpec);
         setMeasuredDimension(mWidth, mHeight);
     }
 

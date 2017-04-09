@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.os.IBinder;
+import android.os.Looper;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -16,6 +17,10 @@ import android.view.View;
 
 import java.io.ByteArrayOutputStream;
 import java.util.Random;
+//import java.util.logging.Handler;
+import android.os.Handler;
+import java.util.logging.LogRecord;
+
 import android.bluetooth.BluetoothAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -28,8 +33,9 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQ_CODE_BT_ENABDLE    = 1;    // enabling bluetooth
     private static final int REQ_CODE_SELECT_DEVICE = 2;    // select bluetooth device
 
+    private static final int JOB_PERIOD_MS          = 5000; // periodic job execution period in ms
+
     private BatteryChargeView mBatteryCharge;   // battery charge bar
-    private BatteryHealthView mBatterHealth;    // battery health bar
     private Random mRandomDataGenerator;        // random values for charge & health
     private BluetoothAdapter mBtAdapter;        // bluetooth adapter
     private BluetoothDevice mBtDevice;          // bluetooth device
@@ -38,6 +44,8 @@ public class MainActivity extends AppCompatActivity {
     private ByteArrayOutputStream mLoopbackResponse;    // data received during loopback
     private TextView mLoopbackStatus;           // loopback status text
     private EditText mInputData;                // text field for SerialComm command
+    private Runnable mJob;                      // gets executed periodically
+    private Handler mJobHandler;                // UI thread handler for periodic job
 
     // callbacks for service connect/disconnect
     private ServiceConnection mSerialCommServiceConn =  new ServiceConnection() {
@@ -129,6 +137,10 @@ public class MainActivity extends AppCompatActivity {
         LocalBroadcastManager.getInstance(this).registerReceiver(mUartBroadcastReceiver, filter);
     }
 
+    private void startPeriodicJob() {
+        mJobHandler.postDelayed(mJob, JOB_PERIOD_MS);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -136,13 +148,12 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // initialization
-        /*
-        mBatteryCharge = (BatteryChargeView)findViewById(R.id.battery_charge);
-        mBatterHealth = (BatteryHealthView)findViewById(R.id.battery_health);
-        */
 
-        /*
+        mBatteryCharge = (BatteryChargeView)findViewById(R.id.battery_charge);
+        // MONKEY: mBatterHealth = (BatteryHealthView)findViewById(R.id.battery_health);
         mRandomDataGenerator = new Random();
+
+        // init bluetooth and uart over ble service
         mBtAdapter = BluetoothAdapter.getDefaultAdapter();
         mBtDevice = null;
         mLoopbackRequest = null;
@@ -153,7 +164,16 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Cannot get default bluetooth adapter", Toast.LENGTH_LONG).show();
         }
         initUartService();
-        */
+
+        mJobHandler = new Handler(Looper.myLooper());
+        mJob = new Runnable() {
+            @Override
+            public void run() {
+                startAnimation();
+                mJobHandler.postDelayed(mJob, JOB_PERIOD_MS);
+            }
+        };
+        startPeriodicJob();
     }
 
     private void sendRequest() {
@@ -180,9 +200,9 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void startAnimation(View view) {
+    public void startAnimation() {
         mBatteryCharge.setCurrentChargeLevel(mRandomDataGenerator.nextFloat());
-        mBatterHealth.setCurrentHealthLevel(mRandomDataGenerator.nextFloat());
+        // MONKEY: mBatterHealth.setCurrentHealthLevel(mRandomDataGenerator.nextFloat());
     }
 
     public void connectDisconnect(View view) {
