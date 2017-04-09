@@ -4,6 +4,7 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.View;
 import android.content.Context;
@@ -16,17 +17,21 @@ import android.animation.ValueAnimator;
 public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpdateListener {
     private static final int    FULL_BAR_ANIMATION_DURATION = 2500;     // milliseconds
     private static final float  FULL_CHARGE = 1.0f;                     // percentage
+    private static final String FULL_CHARGE_STR = "100%";
 
     private Paint mBarBackgroundPaint;
     private Paint mBarForegroundPaint;
+    private Paint mBackgroundTextPaint;
+    private Paint mForegroundTextPaint;
     private float mCurrentChargeLevel;
     private int mForegroundColor;
     private int mBackgroundColor;
-    private int mWidth;
-    private int mHeight;
+    private Rect mBackgroundBarRect;
+    private Rect mForegroundBarRect;
     private boolean mIsHorizontal;
-    private int mWidthOffset;                           // subtracted from 100% width
-    private int mHeightOffset;                          // subtracted from 100% height
+    private int mTextX;
+    private int mTextY;
+    private String mText;                   // text that is printed on top of bar (ie. percentage)
 
     public BatteryChargeView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -44,12 +49,8 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
                     Color.parseColor("#FFFFFF"));
             String orientation = a.getString(R.styleable.BatteryChargeView_orientation);
             if (orientation.equals("horizontal")) {
-                mWidth = 700;
-                mHeight = 300;
                 mIsHorizontal = true;
             } else {
-                mWidth = 300;
-                mHeight = 700;
                 mIsHorizontal = false;
             }
         } finally {
@@ -62,10 +63,19 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
         mBarForegroundPaint = new Paint();
         mBarForegroundPaint.setColor(mForegroundColor);
         mBarForegroundPaint.setStyle(Paint.Style.FILL);
+        mBackgroundTextPaint = new Paint();
+        mBackgroundTextPaint.setColor(Color.parseColor("#ffffff"));
+        mBackgroundTextPaint.setStyle(Paint.Style.FILL);
+        mBackgroundTextPaint.setTextAlign(Paint.Align.CENTER);
+        mBackgroundTextPaint.setTextSize(getResources().getDisplayMetrics().scaledDensity * 20);
+        mForegroundTextPaint = new Paint();
+        mForegroundTextPaint.setColor(Color.parseColor("#000000"));
+        mForegroundTextPaint.setStyle(Paint.Style.FILL);
+        mForegroundTextPaint.setTextAlign(Paint.Align.CENTER);
+        mForegroundTextPaint.setTextSize(getResources().getDisplayMetrics().scaledDensity * 20);
 
         mCurrentChargeLevel = FULL_CHARGE;
-        mWidthOffset = 0;
-        mHeightOffset = 0;
+        mText = FULL_CHARGE_STR;
     }
 
     public float getCurrentChargeLevel() {
@@ -85,12 +95,20 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
     @Override
     public void onAnimationUpdate(ValueAnimator animation) {
         mCurrentChargeLevel = ((Float)animation.getAnimatedValue()).floatValue();
+
         // calculate offset that is subtracted from size representing 100%
+        int widthOffset = 0, heightOffset = 0;
         if (mIsHorizontal) {
-            mWidthOffset = (int)(mWidth * (1 - mCurrentChargeLevel));
+            widthOffset = (int)(mBackgroundBarRect.width() * (1 - mCurrentChargeLevel));
         } else {
-            mHeightOffset = (int)(mHeight * (1 - mCurrentChargeLevel));
+            heightOffset = (int)(mBackgroundBarRect.height() * (1 - mCurrentChargeLevel));
         }
+        // update the rectangle of the bar
+        mForegroundBarRect.set(0, 0, mBackgroundBarRect.width() - widthOffset,
+                mBackgroundBarRect.height() - heightOffset);
+
+        mText = Integer.toString((int)(100 * mCurrentChargeLevel)) + "%";
+
         invalidate();
     }
 
@@ -98,14 +116,28 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
-        mWidth = MeasureSpec.getSize(widthMeasureSpec);
-        mHeight = MeasureSpec.getSize(heightMeasureSpec);
-        setMeasuredDimension(mWidth, mHeight);
+        int width = MeasureSpec.getSize(widthMeasureSpec);
+        int height = MeasureSpec.getSize(heightMeasureSpec);
+        mBackgroundBarRect = new Rect(0, 0, width, height);
+        mForegroundBarRect = new Rect(0, 0, width, height);
+
+        // get center coordinates of percentage text
+        mTextX = mBackgroundBarRect.width() / 2;
+        // offset by height of text bounds to center it on y axis
+        Rect textBounds = new Rect();
+        String text = FULL_CHARGE_STR;
+        mBackgroundTextPaint.getTextBounds(text, 0, text.length(), textBounds);
+        mTextY = (mBackgroundBarRect.height() / 2) + (textBounds.height() / 2);
+
+        setMeasuredDimension(mBackgroundBarRect.width(), mBackgroundBarRect.height());
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
-        canvas.drawRect(0, 0, mWidth, mHeight, mBarBackgroundPaint);
-        canvas.drawRect(0, 0, mWidth - mWidthOffset, mHeight - mHeightOffset, mBarForegroundPaint);
+        canvas.drawRect(mBackgroundBarRect, mBarBackgroundPaint);
+        canvas.drawRect(mForegroundBarRect, mBarForegroundPaint);
+        canvas.drawText(mText, mTextX, mTextY, mBackgroundTextPaint);
+        canvas.clipRect(mForegroundBarRect);
+        canvas.drawText(mText, mTextX, mTextY, mForegroundTextPaint);
     }
 }
