@@ -4,4 +4,8 @@
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
     <color name="black">#000000</color>
+    <color name="barBackground">#FFFFFF</color>
+    <color name="barForeground">#8CA9B2</color>
+    <color name="backgroundText">#000000</color>
+    <color name="foregroundText">#FFFFFF</color>
 </resources>

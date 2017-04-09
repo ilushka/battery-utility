@@ -5,6 +5,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Rect;
+import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.view.View;
 import android.content.Context;
@@ -16,6 +17,7 @@ import android.animation.ValueAnimator;
 
 public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpdateListener {
     private static final int    FULL_BAR_ANIMATION_DURATION = 2500;     // milliseconds
+
     private static final float  FULL_CHARGE = 1.0f;                     // percentage
     private static final String FULL_CHARGE_STR = "100";
     private static final String PERCENTAGE = "%";
@@ -28,8 +30,8 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
     private float mCurrentChargeLevel;      // 0.0 to 1.0
     private int mForegroundColor;
     private int mBackgroundColor;
-    private Rect mBackgroundBarRect;
-    private Rect mForegroundBarRect;
+    private Rect mBackgroundBarRect;        // rectangle for the background (maximum value bar)
+    private Rect mForegroundBarRect;        // rectangle for the bar representing the fraction
     private boolean mIsHorizontal;
     private int mTextX;
     private int mTextY;
@@ -78,12 +80,12 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
         mBarForegroundPaint.setColor(mForegroundColor);
         mBarForegroundPaint.setStyle(Paint.Style.FILL);
         mBackgroundTextPaint = new Paint();
-        mBackgroundTextPaint.setColor(Color.parseColor("#ffffff"));
+        mBackgroundTextPaint.setColor(ContextCompat.getColor(context, R.color.backgroundText));
         mBackgroundTextPaint.setStyle(Paint.Style.FILL);
         mBackgroundTextPaint.setTextAlign(Paint.Align.CENTER);
         mBackgroundTextPaint.setTextSize(getResources().getDisplayMetrics().scaledDensity * 20);
         mForegroundTextPaint = new Paint();
-        mForegroundTextPaint.setColor(Color.parseColor("#000000"));
+        mForegroundTextPaint.setColor(ContextCompat.getColor(context, R.color.foregroundText));
         mForegroundTextPaint.setStyle(Paint.Style.FILL);
         mForegroundTextPaint.setTextAlign(Paint.Align.CENTER);
         mForegroundTextPaint.setTextSize(getResources().getDisplayMetrics().scaledDensity * 20);

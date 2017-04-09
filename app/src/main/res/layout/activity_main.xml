@@ -9,31 +9,31 @@
     <com.moskovko.battmon.BatteryChargeView
         android:id="@+id/battery_charge"
         android:layout_width="match_parent"
-        android:layout_height="30dp"
+        android:layout_height="50dp"
         android:layout_margin="20dp"
         custom:orientation="horizontal"
-        custom:foregroundColor="#ff0000"
-        custom:backgroundColor="#00ff00"
+        custom:foregroundColor="@color/barForeground"
+        custom:backgroundColor="@color/barBackground"
         custom:units="percentage"
         custom:scaledValue="100"/>
     <com.moskovko.battmon.BatteryChargeView
         android:id="@+id/battery_health"
         android:layout_width="match_parent"
-        android:layout_height="30dp"
+        android:layout_height="50dp"
         android:layout_margin="20dp"
         custom:orientation="horizontal"
-        custom:foregroundColor="#ff0000"
-        custom:backgroundColor="#00ff00"
+        custom:foregroundColor="@color/barForeground"
+        custom:backgroundColor="@color/barBackground"
         custom:units="percentage"
         custom:scaledValue="100"/>
     <com.moskovko.battmon.BatteryChargeView
         android:id="@+id/battery_capacity"
         android:layout_width="match_parent"
-        android:layout_height="30dp"
+        android:layout_height="50dp"
         android:layout_margin="20dp"
         custom:orientation="horizontal"
-        custom:foregroundColor="#ff0000"
-        custom:backgroundColor="#00ff00"
+        custom:foregroundColor="@color/barForeground"
+        custom:backgroundColor="@color/barBackground"
         custom:units="amperehour"
         custom:scaledValue="1500"/>
     <!-- com.moskovko.battmon.BatteryHealthView
