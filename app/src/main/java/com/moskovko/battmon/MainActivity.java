@@ -36,6 +36,8 @@ public class MainActivity extends AppCompatActivity {
     private static final int JOB_PERIOD_MS          = 5000; // periodic job execution period in ms
 
     private BatteryChargeView mBatteryCharge;   // battery charge bar
+    private BatteryChargeView mBatteryHealth;   // battery health bar
+    private BatteryChargeView mBatteryCapacity; // battery capacity bar
     private Random mRandomDataGenerator;        // random values for charge & health
     private BluetoothAdapter mBtAdapter;        // bluetooth adapter
     private BluetoothDevice mBtDevice;          // bluetooth device
@@ -147,10 +149,10 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        // initialization
-
         mBatteryCharge = (BatteryChargeView)findViewById(R.id.battery_charge);
-        // MONKEY: mBatterHealth = (BatteryHealthView)findViewById(R.id.battery_health);
+        mBatteryHealth = (BatteryChargeView)findViewById(R.id.battery_health);
+        mBatteryCapacity = (BatteryChargeView)findViewById(R.id.battery_capacity);
+
         mRandomDataGenerator = new Random();
 
         // init bluetooth and uart over ble service
@@ -165,6 +167,7 @@ public class MainActivity extends AppCompatActivity {
         }
         initUartService();
 
+        // periodically executed job on ui thread
         mJobHandler = new Handler(Looper.myLooper());
         mJob = new Runnable() {
             @Override
@@ -202,7 +205,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void startAnimation() {
         mBatteryCharge.setCurrentChargeLevel(mRandomDataGenerator.nextFloat());
-        // MONKEY: mBatterHealth.setCurrentHealthLevel(mRandomDataGenerator.nextFloat());
+        mBatteryHealth.setCurrentChargeLevel(mRandomDataGenerator.nextFloat());
+        mBatteryCapacity.setCurrentChargeLevel(mRandomDataGenerator.nextFloat());
     }
 
     public void connectDisconnect(View view) {

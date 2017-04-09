@@ -25,8 +25,8 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
     private int mWidth;
     private int mHeight;
     private boolean mIsHorizontal;
-    private int mWidthOffset;
-    private int mHeightOffset;
+    private int mWidthOffset;                           // subtracted from 100% width
+    private int mHeightOffset;                          // subtracted from 100% height
 
     public BatteryChargeView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -85,10 +85,11 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
     @Override
     public void onAnimationUpdate(ValueAnimator animation) {
         mCurrentChargeLevel = ((Float)animation.getAnimatedValue()).floatValue();
+        // calculate offset that is subtracted from size representing 100%
         if (mIsHorizontal) {
-            mWidthOffset = (int)(mWidth * mCurrentChargeLevel);
+            mWidthOffset = (int)(mWidth * (1 - mCurrentChargeLevel));
         } else {
-            mHeightOffset = (int)(mHeight * mCurrentChargeLevel);
+            mHeightOffset = (int)(mHeight * (1 - mCurrentChargeLevel));
         }
         invalidate();
     }
