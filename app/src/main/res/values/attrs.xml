@@ -4,5 +4,7 @@
         <attr name="orientation" format="string"/>
         <attr name="foregroundColor" format="color"/>
         <attr name="backgroundColor" format="color"/>
+        <attr name="units" format="string"/>
+        <attr name="scaledValue" format="integer"/>
     </declare-styleable>
 </resources>

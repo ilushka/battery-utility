@@ -13,7 +13,9 @@
         android:layout_margin="20dp"
         custom:orientation="horizontal"
         custom:foregroundColor="#ff0000"
-        custom:backgroundColor="#00ff00"/>
+        custom:backgroundColor="#00ff00"
+        custom:units="percentage"
+        custom:scaledValue="100"/>
     <com.moskovko.battmon.BatteryChargeView
         android:id="@+id/battery_health"
         android:layout_width="match_parent"
@@ -21,7 +23,9 @@
         android:layout_margin="20dp"
         custom:orientation="horizontal"
         custom:foregroundColor="#ff0000"
-        custom:backgroundColor="#00ff00"/>
+        custom:backgroundColor="#00ff00"
+        custom:units="percentage"
+        custom:scaledValue="100"/>
     <com.moskovko.battmon.BatteryChargeView
         android:id="@+id/battery_capacity"
         android:layout_width="match_parent"
@@ -29,7 +33,9 @@
         android:layout_margin="20dp"
         custom:orientation="horizontal"
         custom:foregroundColor="#ff0000"
-        custom:backgroundColor="#00ff00"/>
+        custom:backgroundColor="#00ff00"
+        custom:units="amperehour"
+        custom:scaledValue="1500"/>
     <!-- com.moskovko.battmon.BatteryHealthView
         android:id="@+id/battery_health"
         android:layout_width="wrap_content"

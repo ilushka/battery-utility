@@ -17,13 +17,15 @@ import android.animation.ValueAnimator;
 public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpdateListener {
     private static final int    FULL_BAR_ANIMATION_DURATION = 2500;     // milliseconds
     private static final float  FULL_CHARGE = 1.0f;                     // percentage
-    private static final String FULL_CHARGE_STR = "100%";
+    private static final String FULL_CHARGE_STR = "100";
+    private static final String PERCENTAGE = "%";
+    private static final String AMPEREHOUR = "Ah";
 
     private Paint mBarBackgroundPaint;
     private Paint mBarForegroundPaint;
     private Paint mBackgroundTextPaint;
     private Paint mForegroundTextPaint;
-    private float mCurrentChargeLevel;
+    private float mCurrentChargeLevel;      // 0.0 to 1.0
     private int mForegroundColor;
     private int mBackgroundColor;
     private Rect mBackgroundBarRect;
@@ -32,6 +34,8 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
     private int mTextX;
     private int mTextY;
     private String mText;                   // text that is printed on top of bar (ie. percentage)
+    private String mTexUnit;                // suffix to tox
+    private int mScaledValue;               // maximum value that is multiplied by mCurrentChargeLevel
 
     public BatteryChargeView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -42,21 +46,31 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
                 R.styleable.BatteryChargeView,
                 0, 0);
         try {
-            // mTest = a.getString(R.styleable.BatteryChargeView_testAttr);
             mForegroundColor = a.getColor(R.styleable.BatteryChargeView_foregroundColor,
                     Color.parseColor("#000000"));
             mBackgroundColor = a.getColor(R.styleable.BatteryChargeView_backgroundColor,
                     Color.parseColor("#FFFFFF"));
+
             String orientation = a.getString(R.styleable.BatteryChargeView_orientation);
             if (orientation.equals("horizontal")) {
                 mIsHorizontal = true;
             } else {
                 mIsHorizontal = false;
             }
+
+            String units = a.getString(R.styleable.BatteryChargeView_units);
+            if (units.equals("amperehour")) {
+                mTexUnit = AMPEREHOUR;
+            } else if (units.equals("percentage")) {
+                mTexUnit = PERCENTAGE;
+            }
+
+            mScaledValue = a.getInt(R.styleable.BatteryChargeView_scaledValue, 100);
         } finally {
             a.recycle();
         }
 
+        // paint
         mBarBackgroundPaint = new Paint();
         mBarBackgroundPaint.setColor(mBackgroundColor);
         mBarBackgroundPaint.setStyle(Paint.Style.FILL);
@@ -75,7 +89,7 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
         mForegroundTextPaint.setTextSize(getResources().getDisplayMetrics().scaledDensity * 20);
 
         mCurrentChargeLevel = FULL_CHARGE;
-        mText = FULL_CHARGE_STR;
+        mText = mScaledValue + mTexUnit;
     }
 
     public float getCurrentChargeLevel() {
@@ -107,7 +121,7 @@ public class BatteryChargeView extends View implements ValueAnimator.AnimatorUpd
         mForegroundBarRect.set(0, 0, mBackgroundBarRect.width() - widthOffset,
                 mBackgroundBarRect.height() - heightOffset);
 
-        mText = Integer.toString((int)(100 * mCurrentChargeLevel)) + "%";
+        mText = Integer.toString((int)(mScaledValue * mCurrentChargeLevel)) + mTexUnit;
 
         invalidate();
     }
