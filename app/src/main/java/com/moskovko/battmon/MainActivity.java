@@ -179,6 +179,12 @@ public class MainActivity extends AppCompatActivity {
         startPeriodicJob();
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        showConnectionActivity();
+    }
+
     private void sendRequest() {
         byte[] request = SerialCommService.convertHexStringToByteArray(mInputData.getText().toString());
         mLoopbackStatus.setText("none");
@@ -207,6 +213,11 @@ public class MainActivity extends AppCompatActivity {
         mBatteryCharge.setCurrentChargeLevel(mRandomDataGenerator.nextFloat());
         mBatteryHealth.setCurrentChargeLevel(mRandomDataGenerator.nextFloat());
         mBatteryCapacity.setCurrentChargeLevel(mRandomDataGenerator.nextFloat());
+    }
+
+    private void showConnectionActivity() {
+        Intent intent = new Intent(this, ConnectActivity.class);
+        startActivity(intent);
     }
 
     public void connectDisconnect(View view) {

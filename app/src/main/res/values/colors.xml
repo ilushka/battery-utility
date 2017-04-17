@@ -8,4 +8,5 @@
     <color name="barForeground">#8CA9B2</color>
     <color name="backgroundText">#000000</color>
     <color name="foregroundText">#FFFFFF</color>
+    <color name="barLabel">#FFFFFFFF</color>
 </resources>

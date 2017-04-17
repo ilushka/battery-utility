@@ -14,4 +14,9 @@
     <string name="start_loopback">Start loopback</string>
     <string name="stop_loopback">Stop loopback</string>
     <string name="response">Response:</string>
+    <string name="battery_charge">Battery Charge</string>
+    <string name="battery_health">Battery Health</string>
+    <string name="battery_capacity">Battery Capacity</string>
+    <string name="set_battery_capacity">Set capacity</string>
+    <string name="need_location_enabled">Must have access to device\'s location</string>
 </resources>
