@@ -223,12 +223,19 @@ public class ConnectActivity extends AppCompatActivity {
 //                return;
 //            }
  //       }
+
+        if (device.getName() == null) {
+            // ignore blank names. what are they anyway?
+            return;
+        }
+        
         for (BluetoothDevice bd : mDeviceList) {
             if (bd.getAddress().equals(device.getAddress())) {
                 // found duplicate device
                 return;
             }
         }
+
         mDeviceList.add(device);
         mAdapter.notifyDataSetChanged();
     }

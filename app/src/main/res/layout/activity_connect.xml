@@ -10,6 +10,11 @@
     <ListView
         android:id="@+id/device_listview"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="wrap_content">
     </ListView>
+    <ProgressBar
+        android:id="@+id/connect_progress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:indeterminate="true" />
 </LinearLayout>
