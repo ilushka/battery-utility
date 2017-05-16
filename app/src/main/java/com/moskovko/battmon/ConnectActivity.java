@@ -223,6 +223,12 @@ public class ConnectActivity extends AppCompatActivity {
 //                return;
 //            }
  //       }
+        for (BluetoothDevice bd : mDeviceList) {
+            if (bd.getAddress().equals(device.getAddress())) {
+                // found duplicate device
+                return;
+            }
+        }
         mDeviceList.add(device);
         mAdapter.notifyDataSetChanged();
     }
